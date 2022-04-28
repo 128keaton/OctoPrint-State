@@ -1,19 +1,16 @@
 #!/usr/bin/env node
 
 import fetch from 'node-fetch';
-import 'dotenv/config'
-import {Burly} from "kb-burly";
 import {program} from "commander";
-
 
 const octoEndpoint = () => process.env['OCTO_ENDPOINT'];
 const octoKey = () => process.env['API_KEY'];
 
 const baseAPIEndpoint = (additional) => {
-    let base = Burly(octoEndpoint()).addSegment('/api');
+    let base = octoEndpoint() + '/api';
 
     if (!!additional && additional.length) {
-        return base.addSegment(additional);
+        return base + additional;
     }
 
     return base;
@@ -61,7 +58,7 @@ function checkResponse(data, key) {
 }
 
 async function checkVersion() {
-    const url = baseAPIEndpoint('/version').get;
+    const url = baseAPIEndpoint('/version');
 
     const response = await makeRequest(url);
     const data = await response.json();
@@ -70,7 +67,7 @@ async function checkVersion() {
 }
 
 async function getJobInfo() {
-    const url = baseAPIEndpoint('/job').get;
+    const url = baseAPIEndpoint('/job');
 
     const response = await makeRequest(url);
     const data = await response.json();
@@ -81,7 +78,7 @@ async function getJobInfo() {
 }
 
 async function getBedState() {
-    const url = baseAPIEndpoint('/printer').addSegment('/bed').get;
+    const url = baseAPIEndpoint('/printer/bed');
     const response = await makeRequest(url);
     const data = await response.json();
 
@@ -93,7 +90,7 @@ async function getBedState() {
 }
 
 async function heatBed(target) {
-    const url = baseAPIEndpoint('/printer').addSegment('/bed').get;
+    const url = baseAPIEndpoint('/printer/bed');
     const body = {
         command: 'target',
         target
@@ -117,6 +114,7 @@ program.command('check')
     .action((server, key, target) => {
         process.env['OCTO_ENDPOINT'] = server;
         process.env['API_KEY'] = key;
+        process.env['TARGET'] = target;
 
         checkEnvironment()
             .then(() => checkVersion())
