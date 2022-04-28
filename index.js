@@ -3,13 +3,14 @@
 import fetch from 'node-fetch';
 import 'dotenv/config'
 import {Burly} from "kb-burly";
+import {program} from "commander";
 
-const API_KEY = process.env['API_KEY'];
-const OCTO_ENDPOINT = process.env['OCTO_ENDPOINT'];
-const TARGET = parseInt(process.env['TARGET']);
+
+const octoEndpoint = () => process.env['OCTO_ENDPOINT'];
+const octoKey = () => process.env['API_KEY'];
 
 const baseAPIEndpoint = (additional) => {
-    let base = Burly(OCTO_ENDPOINT).addSegment('/api');
+    let base = Burly(octoEndpoint()).addSegment('/api');
 
     if (!!additional && additional.length) {
         return base.addSegment(additional);
@@ -44,7 +45,7 @@ function makeRequest(url, body = undefined) {
         method: (!!body ? 'POST' : 'GET'),
         body,
         headers: {
-            'X-Api-Key': API_KEY
+            'X-Api-Key': octoKey()
         }
     });
 }
@@ -103,35 +104,52 @@ async function heatBed(target) {
     return response.status === 204;
 }
 
-checkEnvironment()
-    .then(() => checkVersion())
-    .then(versionGood => {
-        if (!versionGood) {
-            throw new Error('Bad API version');
-        }
+program
+    .name('printer-state')
+    .description('CLI to check and manage bed temp on an OctoPrint server')
+    .version(process.env.npm_package_version);
 
-        return getJobInfo()
-    }, chainError)
-    .then(jobInfo => {
-        if (jobInfo['state'] !== 'Operational') {
-            throw new Error('Not doing anything since a job is running')
-        }
+program.command('check')
+    .description('Check and set temperature on the given server')
+    .argument('<server>', 'OctoPrint Endpoint')
+    .argument('<key>', 'OctoPrint API Key')
+    .argument('<target>', 'Target Temperature')
+    .action((server, key, target) => {
+        process.env['OCTO_ENDPOINT'] = server;
+        process.env['API_KEY'] = key;
 
-        return getBedState();
-    }, chainError)
-    .then(bedState => {
-        const currentBedTemp = bedState['actual'];
-        const targetBedTemp = bedState['target'];
+        checkEnvironment()
+            .then(() => checkVersion())
+            .then(versionGood => {
+                if (!versionGood) {
+                    throw new Error('Bad API version');
+                }
 
-        console.log('Current bed temp:', currentBedTemp);
-        if (isWithinWorkHours() && targetBedTemp === 0) {
-            console.log('Heating bed up');
-            return heatBed(TARGET);
-        } else if (!isWithinWorkHours()) {
-            console.log('Cooling bed off');
-            return heatBed(0);
-        }
+                return getJobInfo()
+            }, chainError)
+            .then(jobInfo => {
+                if (jobInfo['state'] !== 'Operational') {
+                    throw new Error('Not doing anything since a job is running')
+                }
 
-        console.log('Nothing to do');
-    })
-    .catch(err => console.error(err));
+                return getBedState();
+            }, chainError)
+            .then(bedState => {
+                const currentBedTemp = bedState['actual'];
+                const targetBedTemp = bedState['target'];
+
+                console.log('Current bed temp:', currentBedTemp);
+                if (isWithinWorkHours() && targetBedTemp === 0) {
+                    console.log('Heating bed up');
+                    return heatBed(target);
+                } else if (!isWithinWorkHours()) {
+                    console.log('Cooling bed off');
+                    return heatBed(0);
+                }
+
+                console.log('Nothing to do');
+            })
+            .catch(err => console.error(err));
+    });
+
+program.parse();

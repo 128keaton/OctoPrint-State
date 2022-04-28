@@ -5,5 +5,6 @@ Sets bed temp to a reasonable value during working hours, typically used in conj
 ### Usage
 
 ```shell
-$ printer-state
+#                     ENDPOINT             API_KEY   TARGET_TEMP        
+$ printer-state check http://192.168.1.242 123123123 75         
 ```
