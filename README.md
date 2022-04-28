@@ -19,7 +19,7 @@ $ printer-state check http://192.168.1.242 123123123 75
 ```shell
 #!/bin/bash
 
-printer-state check http://localhost YOUR_API_KEY_HERE 75  > /home/pi/printer-state.log 2>&1
+/home/pi/.nvm/versions/node/v16.15.0/bin/printer-state check http://localhost YOUR_API_KEY_HERE 75  > /home/pi/printer-state.log 2>&1
 ```
 
 I named my script `check-temp.sh`. Do not forget to set the executable bit:
